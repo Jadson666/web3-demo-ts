@@ -6,7 +6,7 @@ This project was bootstrapped with [Create React App](https://github.com/faceboo
 
 In the project directory, you can run:
 
-### `npm start`
+### `yarn start`
 
 Runs the app in the development mode.\
 Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
@@ -14,33 +14,57 @@ Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
 The page will reload if you make edits.\
 You will also see any lint errors in the console.
 
-### `npm test`
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Purpose
+1. this demo aim to make a concrete example on how to make a ETH transaction
+in minimum code
+2. reader can have more derived knowledge from the involved entity like provider, signer, etc
+## Prerequisite
 
-### `npm run build`
+1. [common terms of ethers.js](https://docs.ethers.io/v5/getting-started/#getting-started--glossary)
+2. connect to MetaMask (testnet **Ropsten** is working in this demo)
+3. balance of ETH is stored as **Wei** on chain, so when you get balance from chain, you need to call `formatEther` to format to ETH, and when you want to send transaction request, you need to call `parseUnits` to format to **Wei**
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Transfer Process
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+1. add web3-react context - `Web3ReactProvider` ([source code](https://github.com/Uniswap/web3-react/blob/v6/packages/core/src/provider.tsx))
+   ```tsx
+   <Web3ReactProvider getLibrary={getLibrary}>
+     <App>
+   </Web3ReactProvider>
+   ```
+   this make the data in hooks available
+2. call activate to connect to wallet
+   [InjectedConnector](https://github.com/Uniswap/web3-react/blob/v6/packages/injected-connector/src/index.ts#L27) is to handle modified behavior like account change, blockchain change, etc
+   call `activate` will connect to wallet
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+   ```ts
+   enum ChainId {
+     MAIN_NET = 1,
+     ROPSTEN = 3,
+     RINKEBY = 4,
+     GOERLI = 5,
+     KOVAN = 42,
+   }
 
-### `npm run eject`
+   const injectedConnector = new InjectedConnector({
+     supportedChainIds: [ChainId.MAIN_NET, ChainId.ROPSTEN, ChainId.RINKEBY, ChainId.GOERLI, ChainId.KOVAN],
+   })
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+   const { activate } = useWeb3React<Web3Provider>()
+   ```
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+3. send transaction to transfer ETH
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+   ```ts
+   enum FAUCET_ADDRESS {
+     ROPSTEN = '0x81b7e08f65bdf5648606c89998a9cc8164397647',
+   }
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+   const { library } = useWeb3React<Web3Provider>()
 
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+   library?.getSigner().sendTransaction({
+     to: FAUCET_ADDRESS.ROPSTEN,
+     value: parseUnits(value?.toString()),
+   })
+   ```
